@@ -1,143 +1,161 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>한글 맞춤법 게임</title>
-<style>
-    body { font-family: "Pretendard", sans-serif; text-align: center; padding: 20px; background: #f7f8fc; }
-    .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h1 { color: #2d2f38; }
-    button { padding: 12px 18px; margin: 8px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; }
-    .btn-primary { background: #4b7bec; color: #fff; }
-    .btn-wrong { background: #eb4d4b; color: #fff; }
-    .btn-correct { background: #20bf6b; color: #fff; }
-    #result { font-size: 18px; font-weight: bold; margin-top: 20px; white-space: pre-line; }
-</style>
+    <meta charset="UTF-8">
+    <title>한글 맞춤법 게임</title>
+    <style>
+        body {
+            font-family: "Pretendard", sans-serif;
+            background: #f0f4ff;
+            text-align: center;
+            padding: 30px;
+        }
+        .container {
+            background: white;
+            width: 600px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            width: 90%;
+            margin: 8px 0;
+            padding: 10px;
+            font-size: 17px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .correct { background: #66bb6a; color: white; }
+        .wrong { background: #ef5350; color: white; }
+        .choice { background: #e3e3e3; }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>한글 맞춤법 게임</h1>
-    <p id="question">게임을 시작하려면 아래 버튼을 누르세요!</p>
+    <h2>📘 한글 맞춤법 게임</h2>
+    <h3 id="word"></h3>
 
-    <div id="options"></div>
+    <div id="choices"></div>
+    <p id="result"></p>
 
-    <button id="startBtn" class="btn-primary" onclick="startGame()">게임 시작</button>
-    <div id="result"></div>
-    <button id="nextBtn" class="btn-primary" style="display:none;" onclick="nextQuestion()">다음 문제</button>
+    <button id="nextBtn" class="hidden">다음 문제</button>
+    <button id="quitBtn">게임 종료하기</button>
 </div>
 
 <script>
-const rules = [
-    { rule: "5항. 한 단어 안에서 뚜렷한 까닭 없이 나는 된소리는 다음 음절의 첫소리를 된소리로 적는다.", 
-      examples: ["소쩍새","어깨","오빠","으뜸","아끼다","기쁘다","깨끗하다","어떠하다","해쓱하다","가끔","거꾸로","부썩","어찌","이따금"],
-      details: [] 
-    },
-    { rule: "11항. 한자음 ‘랴, 려, 례, 료, 류, 리’가 단어의 첫머리에 올 적에는, 두음 법칙에 따라 ‘야, 여, 예, 요, 유, 이’로 적는다.(ㄱ을 취하고, ㄴ을 버림.)", 
-      examples: ["양심","용궁","역사","유행","예의","이발"],
-      details: [
-        "11항 붙임1. 단어의 첫머리 이외는 본음대로 적는다. (개량, 선량, 수력, 협력, 사례, 혼례, 와룡, 쌍룡, 하류, 급류, 도리, 진리)",
-        "11항 붙임2. 모음이나 ‘ㄴ’ 받침 뒤에 이어지는 ‘렬, 률’은 ‘열, 율’로 적는다. (나열, 분열, 치열, 규율, 비율, 실패율, …)"
-      ]
-    },
-    { rule: "25항. ‘-하다’가 붙는 어근에 ‘-히’나 ‘-이’가 붙어서 부사가 되거나, 부사에 ‘-이’가 붙어서 뜻을 더하는 경우에는 그 어근이나 부사의 원형을 밝히어 적는다.", 
-      examples: ["급히","꾸준히","도저히","딱히","어렴풋이","깨끗이","갑자기","반드시","슬며시","곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이"],
-      details: [
-        "1. ‘-하다’가 붙는 어근에 ‘-히’나 ‘-이’가 붙는 경우 (급히, 꾸준히, 도저히, 딱히, 어렴풋이, 깨끗이)",
-        "2. ‘-하다’가 붙지 않는 경우에는 소리대로 적는다. (갑자기, 반드시, 슬며시)",
-        "3. 부사에 ‘-이’가 붙어서 역시 부사가 되는 경우 (곰곰이, 더욱이, 생긋이, 오뚝이, 일찍이, 해죽이)"
-      ]
-    },
-    { rule: "30항. 사이시옷은 다음과 같은 경우에 받치어 적는다.", 
-      examples: ["고랫재","귓밥","나룻배","나뭇가지","냇가","댓가지","뒷갈망","맷돌","머릿기름","모깃불","못자리"],
-      details: []
-    }
+const rules = {
+    "5항": "5항. 한 단어 안에서 뚜렷한 까닭 없이 나는 된소리는 다음 음절의 첫소리를 된소리로 적는다.",
+    "11항1": "11항. 한자음 ‘랴, 려, 례, 료, 류, 리’가 단어의 첫머리에 올 적에는 두음 법칙 적용 (세부1)",
+    "11항2": "[붙임 1] 단어의 첫머리 이외에는 본음대로 적는다. (세부2)",
+    "11항3": "모음이나 ‘ㄴ’ 받침 뒤 ‘렬, 률’ → ‘열, 율’ (세부3)",
+    "25항1": "25항. ‘-하다’ 어근 + ‘-히/이’ 붙는 경우 (세부1)",
+    "25항2": "부사 + ‘-이’ (세부2)",
+    "30항": "30항. 사이시옷을 받치어 적는다."
+};
+
+const words = [
+    // 5항
+    {word: "깨끗하다", rule: "5항"},
+    {word: "가끔", rule: "5항"},
+
+    // 11항 세부1
+    {word: "양심", rule: "11항1"},
+    {word: "역사", rule: "11항1"},
+    {word: "예의", rule: "11항1"},
+    {word: "용궁", rule: "11항1"},
+    {word: "유행", rule: "11항1"},
+    {word: "이발", rule: "11항1"},
+
+    // 11항 세부2
+    {word: "개량", rule: "11항2"},
+    {word: "수력", rule: "11항2"},
+    {word: "혼례", rule: "11항2"},
+    {word: "진리", rule: "11항2"},
+
+    // 11항 세부3
+    {word: "분열", rule: "11항3"},
+    {word: "비율", rule: "11항3"},
+    {word: "나열", rule: "11항3"},
+    {word: "선율", rule: "11항3"},
+
+    // 25항 세부1
+    {word: "급히", rule: "25항1"},
+    {word: "도저히", rule: "25항1"},
+    {word: "깨끗이", rule: "25항1"},
+
+    // 25항 세부2
+    {word: "곰곰이", rule: "25항2"},
+    {word: "슬며시", rule: "25항2"},
+
+    // 30항 (순우리말 예시)
+    {word: "나뭇잎", rule: "30항"},
+    {word: "햇볕", rule: "30항"},
+    {word: "잇몸", rule: "30항"},
+    {word: "뒷머리", rule: "30항"}
 ];
 
-let currentRule;
-let currentWordIndex;
-let step = 1; // 1단계 or 2단계
+let current;
 
-function startGame() {
-    step = 1;
+function newQuestion() {
     document.getElementById("result").innerText = "";
-    document.getElementById("nextBtn").style.display = "none";
-    document.getElementById("startBtn").style.display = "none";
-    generateQuestion();
-}
+    document.getElementById("nextBtn").classList.add("hidden");
 
-function generateQuestion() {
-    currentRule = Math.floor(Math.random() * rules.length);
-    const words = rules[currentRule].examples;
-    currentWordIndex = Math.floor(Math.random() * words.length);
-    const questionText = `단어 '${words[currentWordIndex]}'는 어떤 규칙일까요?\n\n${rules[currentRule].rule}`;
-    document.getElementById("question").innerText = questionText;
+    const randomIndex = Math.floor(Math.random() * words.length);
+    current = words[randomIndex];
 
-    const optionsDiv = document.getElementById("options");
-    optionsDiv.innerHTML = "";
+    document.getElementById("word").innerText = current.word;
+    
+    const allKeys = Object.keys(rules);
+    let choices = [current.rule];
 
-    let optionTexts = [];
-    if(step === 1){
-        // 1단계: 항만 선택
-        optionTexts = rules.map(r => r.rule);
-    } else {
-        // 2단계: 세부 선택지
-        if(rules[currentRule].details.length > 0){
-            optionTexts = rules[currentRule].details;
-        } else {
-            optionTexts = ["이 항에는 세부 선택지가 없습니다."];
-        }
+    while (choices.length < 4) {
+        const rand = allKeys[Math.floor(Math.random() * allKeys.length)];
+        if (!choices.includes(rand)) choices.push(rand);
     }
 
-    optionTexts.forEach((text, index) => {
+    choices.sort(() => Math.random() - 0.5);
+
+    const choiceBox = document.getElementById("choices");
+    choiceBox.innerHTML = "";
+
+    choices.forEach(c => {
         const btn = document.createElement("button");
-        btn.innerText = text;
-        btn.className = "btn-primary";
-        btn.onclick = () => selectAnswer(index, optionTexts);
-        optionsDiv.appendChild(btn);
+        btn.className = "choice";
+        btn.innerText = rules[c];
+        btn.onclick = () => checkAnswer(c, btn);
+        choiceBox.appendChild(btn);
     });
 }
 
-function selectAnswer(selected, optionTexts) {
+function checkAnswer(choice, btn) {
     const result = document.getElementById("result");
-    let correctIndex;
 
-    if(step === 1){
-        correctIndex = currentRule;
-        if(selected === correctIndex){
-            result.innerText = "정답! ✔\n다음 단계에서 세부 설명을 선택하세요.";
-            result.style.color = "#20bf6b";
-        } else {
-            result.innerText = `오답 ❌\n정답: ${rules[correctIndex].rule}\n다음 단계에서 세부 설명을 확인하세요.`;
-            result.style.color = "#eb4d4b";
-        }
-        step = 2;
-        document.getElementById("nextBtn").style.display = "block";
+    if (choice === current.rule) {
+        btn.classList.add("correct");
+        result.innerText = "정답입니다! 😊";
     } else {
-        // 2단계: 세부 선택
-        if(rules[currentRule].details.length === 0){
-            result.innerText = "이 항에는 세부 선택지가 없습니다.";
-            result.style.color = "#2d2f38";
-        } else {
-            correctIndex = 0; // 기본 첫 세부 선택지를 정답으로 (원하는 경우 수정 가능)
-            if(selected === correctIndex){
-                result.innerText = "정답! ✔";
-                result.style.color = "#20bf6b";
-            } else {
-                result.innerText = `오답 ❌\n정답: ${rules[currentRule].details[correctIndex]}`;
-                result.style.color = "#eb4d4b";
-            }
-        }
-        document.getElementById("nextBtn").style.display = "block";
+        btn.classList.add("wrong");
+        result.innerText = `❌ 오답! 정답은 → ${rules[current.rule]}`;
     }
+
+    document.querySelectorAll(".choice").forEach(b => b.disabled = true);
+    document.getElementById("nextBtn").classList.remove("hidden");
 }
 
-function nextQuestion() {
-    document.getElementById("result").innerText = "";
-    document.getElementById("nextBtn").style.display = "none";
-    generateQuestion();
-}
+document.getElementById("nextBtn").onclick = () => {
+    newQuestion();
+};
+
+document.getElementById("quitBtn").onclick = () => {
+    alert("게임을 종료합니다!");
+    window.close();
+};
+
+newQuestion();
 </script>
 
 </body>
