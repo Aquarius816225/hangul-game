@@ -1,254 +1,144 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>한글 맞춤법 게임</title>
 <style>
-  :root{--bg:#f7f9ff;--card:#fff;--accent:#3b82f6;--ok:#16a34a;--bad:#ef4444}
-  body{font-family:Apple SD Gothic Neo,system-ui,Segoe UI,Roboto,'Noto Sans KR',sans-serif;background:var(--bg);margin:0;padding:24px;display:flex;justify-content:center}
-  .wrap{width:min(820px,96vw);background:var(--card);border-radius:12px;padding:20px;box-shadow:0 6px 20px rgba(30,30,60,0.08)}
-  h1{margin:0 0 12px;font-size:20px;text-align:center}
-  #word{font-size:28px;text-align:center;margin:14px 0;padding:10px 8px;border-radius:8px;background:#fbfdff}
-  .stage{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
-  button.opt{padding:12px;text-align:left;border-radius:8px;border:1px solid #dbeafe;background:#fff;cursor:pointer;font-size:15px}
-  button.opt:hover{background:#f1f8ff}
-  .small{font-size:13px;color:#444;opacity:.9}
-  #result{margin-top:14px;padding:12px;border-radius:8px;min-height:54px}
-  #result.ok{background:#ecfdf5;color:var(--ok);border:1px solid rgba(22,163,74,0.12)}
-  #result.bad{background:#fff1f2;color:var(--bad);border:1px solid rgba(239,68,68,0.08)}
-  .controls{display:flex;gap:10px;justify-content:center;margin-top:14px}
-  .btn{padding:10px 16px;border-radius:8px;border:none;cursor:pointer;font-size:15px}
-  .btn.primary{background:var(--accent);color:white}
-  .btn.ghost{background:transparent;border:1px solid #e6eefc}
-  .meta{margin-top:8px;font-size:13px;color:#666;text-align:center}
-  @media (min-width:700px){ .stage{grid-template-columns:1fr 1fr} }
-  /* 보조 스타일 */
-  .subnote{font-size:13px;color:#555;margin-top:8px}
+    body { font-family: "Pretendard", sans-serif; text-align: center; padding: 20px; background: #f7f8fc; }
+    .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1 { color: #2d2f38; }
+    button { padding: 12px 18px; margin: 8px; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; }
+    .btn-primary { background: #4b7bec; color: #fff; }
+    .btn-wrong { background: #eb4d4b; color: #fff; }
+    .btn-correct { background: #20bf6b; color: #fff; }
+    #result { font-size: 18px; font-weight: bold; margin-top: 20px; white-space: pre-line; }
 </style>
 </head>
 <body>
-  <div class="wrap">
+
+<div class="container">
     <h1>한글 맞춤법 게임</h1>
+    <p id="question">게임을 시작하려면 아래 버튼을 누르세요!</p>
 
-    <div style="display:flex;gap:8px;justify-content:center">
-      <button id="startBtn" class="btn primary">게임 시작</button>
-      <button id="quitBtn" class="btn ghost">게임 종료</button>
-    </div>
+    <div id="options"></div>
 
-    <div id="gameArea" style="display:none">
-      <div id="word" aria-live="polite"></div>
-
-      <div id="stage1Title" class="small" style="margin-top:8px;text-align:left">1단계 — 아래 항(조항 전체 문장)을 골라주세요.</div>
-      <div id="stage1" class="stage"></div>
-
-      <div id="stage2Title" class="small" style="margin-top:12px;text-align:left;display:none">2단계 — 선택한 항의 세부(문장 전체)를 골라주세요.</div>
-      <div id="stage2" class="stage"></div>
-
-      <div id="result" style="display:none"></div>
-
-      <div class="controls">
-        <button id="nextBtn" class="btn primary" style="display:none">다음 문제 ▶</button>
-        <button id="showAnswerBtn" class="btn ghost" style="display:none">정답 보기</button>
-      </div>
-
-      <div class="meta" id="scoreArea">점수: 0</div>
-      <div class="subnote" id="explainNote" style="display:none"></div>
-    </div>
-  </div>
+    <button id="startBtn" class="btn-primary" onclick="startGame()">게임 시작</button>
+    <div id="result"></div>
+    <button id="nextBtn" class="btn-primary" style="display:none;" onclick="nextQuestion()">다음 문제</button>
+</div>
 
 <script>
-/* 데이터: 조항(문장)과 세부(문장). 단어 목록은 따로 보관만 하고, 2단계 버튼에는 절대 단어 리스트를 넣지 않습니다. */
-const clauses = {
-  "5항": {
-    "문장": "5항. 한 단어 안에서 뚜렷한 까닭 없이 나는 된소리는 다음 음절의 첫소리를 된소리로 적는다.",
-    "세부": {
-      "1": "1. 두 모음 사이에서 나는 된소리",
-      "2": "2. ‘ㄴ, ㄹ, ㅁ, ㅇ’ 받침 뒤에서 나는 된소리",
-      "붙임": "다만, ‘ㄱ, ㅂ’ 받침 뒤에서 나는 된소리는, 같은 음절이나 비슷한 음절이 겹쳐 나는 경우가 아니면 된소리로 적지 아니한다."
+const rules = [
+    { rule: "5항. 한 단어 안에서 뚜렷한 까닭 없이 나는 된소리는 다음 음절의 첫소리를 된소리로 적는다.", 
+      examples: ["소쩍새","어깨","오빠","으뜸","아끼다","기쁘다","깨끗하다","어떠하다","해쓱하다","가끔","거꾸로","부썩","어찌","이따금"],
+      details: [] 
     },
-    "단어":[ /* 단어는 보여주지 않음 */ "소쩍새","어깨","오빠","으뜸","아끼다","기쁘다","깨끗하다","어떠하다","해쓱하다","가끔","거꾸로","부썩","어찌","이따금","산뜻하다","잔뜩","살짝","훨씬","담뿍","움찔","몽땅","엉뚱하다","국수","깍두기","딱지","색시","싹둑","법석","갑자기","몹시" ]
-  },
-{
-    rule: "11항. 한자음 ‘랴, 려, 례, 료, 류, 리’가 단어의 첫머리에 올 적에는, 두음 법칙에 따라 ‘야, 여, 예, 요, 유, 이’로 적는다.",
-    details: [
-        "예시(본항): 양심(良心), 용궁(龍宮), 역사(歷史), 유행(流行), 예의(禮儀), 이발(理髮)",
-        "다만, 의존 명사는 본음대로 적는다: 몇 리, 그럴 리",
-        "붙임1. 단어 첫머리 이외는 본음대로 적기: 개량, 선량, 수력, 협력, 사례, 혼례, 와룡, 쌍룡, 하류, 급류, 도리, 진리",
-        "붙임2. 모음 또는 ‘ㄴ’ 받침 뒤 ‘렬, 률’ → ‘열, 율’: 나열, 분열, 치열, 선열, 비열, 진열, 규율, 선율, 비율, 전율, 실패율, 백분율"
-    ],
-    examples: [
-        { word: "양심", correct: true },
-        { word: "용궁", correct: true },
-        { word: "진리", correct: true },
-        { word: "진열", correct: true },
-        { word: "몇리", correct: false }
-    ]
-}
-
-  "25항": {
-    "문장": "25항. ‘-하다’가 붙는 어근에 ‘-히’나 ‘-이’가 붙어서 부사가 되거나, 부사에 ‘-이’가 붙어서 뜻을 더하는 경우에는 그 어근이나 부사의 원형을 밝히어 적는다.",
-    "세부": {
-      "1": "1. ‘-하다’가 붙는 어근에 ‘-히’나 ‘-이’가 붙는 경우",
-      "붙임": "붙임. ‘-하다’가 붙지 않는 경우에는 소리대로 적는다.",
-      "2": "2. 부사에 ‘-이’가 붙어서 역시 부사가 되는 경우"
+    { rule: "11항. 한자음 ‘랴, 려, 례, 료, 류, 리’가 단어의 첫머리에 올 적에는, 두음 법칙에 따라 ‘야, 여, 예, 요, 유, 이’로 적는다.(ㄱ을 취하고, ㄴ을 버림.)", 
+      examples: ["양심","용궁","역사","유행","예의","이발"],
+      details: [
+        "11항 붙임1. 단어의 첫머리 이외는 본음대로 적는다. (개량, 선량, 수력, 협력, 사례, 혼례, 와룡, 쌍룡, 하류, 급류, 도리, 진리)",
+        "11항 붙임2. 모음이나 ‘ㄴ’ 받침 뒤에 이어지는 ‘렬, 률’은 ‘열, 율’로 적는다. (나열, 분열, 치열, 규율, 비율, 실패율, …)"
+      ]
     },
-    "단어":[ "급히","꾸준히","도저히","딱히","어렴풋이","깨끗이","갑자기","반드시","슬며시","곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이" ]
-  },
-  "30항": {
-    "문장": "30항. 사이시옷은 다음과 같은 경우에 받치어 적는다.",
-    "세부": {
-      "1": "1. 순우리말로 된 합성어로서 앞말이 모음으로 끝난 경우",
-      "2": "2. 순우리말과 한자어로 된 합성어로서 앞말이 모음으로 끝난 경우",
-      "3": "3. 두 음절로 된 다음 한자어"
+    { rule: "25항. ‘-하다’가 붙는 어근에 ‘-히’나 ‘-이’가 붙어서 부사가 되거나, 부사에 ‘-이’가 붙어서 뜻을 더하는 경우에는 그 어근이나 부사의 원형을 밝히어 적는다.", 
+      examples: ["급히","꾸준히","도저히","딱히","어렴풋이","깨끗이","갑자기","반드시","슬며시","곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이"],
+      details: [
+        "1. ‘-하다’가 붙는 어근에 ‘-히’나 ‘-이’가 붙는 경우 (급히, 꾸준히, 도저히, 딱히, 어렴풋이, 깨끗이)",
+        "2. ‘-하다’가 붙지 않는 경우에는 소리대로 적는다. (갑자기, 반드시, 슬며시)",
+        "3. 부사에 ‘-이’가 붙어서 역시 부사가 되는 경우 (곰곰이, 더욱이, 생긋이, 오뚝이, 일찍이, 해죽이)"
+      ]
     },
-    "단어":[ "고랫재","귓밥","나뭇가지","냇가","뱃길","깻잎","나뭇잎","냇물","빗물","귓병","뱃병","봇둑","샛강","아랫방","자릿세","탯줄","곳간","셋방","숫자","찻간","횟수" ]
-  }
-};
+    { rule: "30항. 사이시옷은 다음과 같은 경우에 받치어 적는다.", 
+      examples: ["고랫재","귓밥","나룻배","나뭇가지","냇가","댓가지","뒷갈망","맷돌","머릿기름","모깃불","못자리"],
+      details: []
+    }
+];
 
-// === 단어 -> 정답 매핑 (정확한 세부 매핑) ===
-const wordMap = {};
-clauses["5항"].단어.forEach(w=>{
-  if(["소쩍새","어깨","오빠","으뜸","아끼다","기쁘다","깨끗하다","어떠하다","해쓱하다","가끔","거꾸로","부썩","어찌","이따금"].includes(w)) {
-    wordMap[w] = {clause:"5항", sub:"1"};
-  } else if(["산뜻하다","잔뜩","살짝","훨씬","담뿍","움찔","몽땅","엉뚱하다"].includes(w)) {
-    wordMap[w] = {clause:"5항", sub:"2"};
-  } else { wordMap[w] = {clause:"5항", sub:"붙임"} }
-});
-clauses["11항"].단어.forEach(w=>{
-  if(["양심","용궁","역사","유행","예의","이발"].includes(w)) wordMap[w] = {clause:"11항", sub:"1"};
-  else if(["개량","선량","수력","협력","사례","혼례","와룡","쌍룡","하류","급류","도리","진리"].includes(w)) wordMap[w] = {clause:"11항", sub:"붙임"};
-  else wordMap[w] = {clause:"11항", sub:"3"};
-});
-clauses["25항"].단어.forEach(w=>{
-  if(["급히","꾸준히","도저히","딱히","어렴풋이","깨끗이"].includes(w)) wordMap[w] = {clause:"25항", sub:"1"};
-  else if(["곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이"].includes(w)) wordMap[w] = {clause:"25항", sub:"2"};
-  else wordMap[w] = {clause:"25항", sub:"붙임"};
-});
-clauses["30항"].단어.forEach(w=>{
-  if(["고랫재","귓밥","나뭇가지","냇가","뱃길","깻잎","나뭇잎","냇물","빗물"].includes(w)) wordMap[w] = {clause:"30항", sub:"1"};
-  else if(["귓병","뱃병","봇둑","샛강","아랫방","자릿세","탯줄"].includes(w)) wordMap[w] = {clause:"30항", sub:"2"};
-  else wordMap[w] = {clause:"30항", sub:"3"};
-});
-const allWords = Object.keys(wordMap);
+let currentRule;
+let currentWordIndex;
+let step = 1; // 1단계 or 2단계
 
-// === 게임 상태 ===
-let currentWord = null;
-let currentCorrect = null;
-let score = 0;
-
-// === UI ===
-const startBtn = document.getElementById('startBtn');
-const quitBtn = document.getElementById('quitBtn');
-const wordEl = document.getElementById('word');
-const stage1El = document.getElementById('stage1');
-const stage2El = document.getElementById('stage2');
-const stage2Title = document.getElementById('stage2Title');
-const resultEl = document.getElementById('result');
-const nextBtn = document.getElementById('nextBtn');
-const showAnswerBtn = document.getElementById('showAnswerBtn');
-const scoreArea = document.getElementById('scoreArea');
-const explainNote = document.getElementById('explainNote');
-const gameArea = document.getElementById('gameArea');
-
-function startGame(){
-  score = 0;
-  scoreArea.textContent = `점수: ${score}`;
-  startBtn.style.display = 'none';
-  gameArea.style.display = 'block';
-  nextQuestion();
-}
-function quitGame(){ if(confirm("게임을 종료할까요?")) location.reload(); }
-
-function nextQuestion(){
-  // 초기화
-  stage1El.innerHTML = '';
-  stage2El.innerHTML = '';
-  stage2Title.style.display = 'none';
-  resultEl.style.display = 'none';
-  nextBtn.style.display = 'none';
-  showAnswerBtn.style.display = 'none';
-  explainNote.style.display = 'none';
-  explainNote.textContent = '';
-
-  // 랜덤 단어 선택
-  const idx = Math.floor(Math.random()*allWords.length);
-  currentWord = allWords[idx];
-  currentCorrect = wordMap[currentWord];
-  wordEl.textContent = currentWord;
-
-  // 1단계: 항(문장 전체) 버튼 생성 — 여기에는 절대 단어 목록을 포함하지 않습니다.
-  Object.keys(clauses).forEach(key=>{
-    const btn = document.createElement('button');
-    btn.className = 'opt';
-    btn.type = 'button';
-    btn.textContent = clauses[key].문장; // 오직 문장만
-    btn.onclick = ()=>selectStage1(key);
-    stage1El.appendChild(btn);
-  });
+function startGame() {
+    step = 1;
+    document.getElementById("result").innerText = "";
+    document.getElementById("nextBtn").style.display = "none";
+    document.getElementById("startBtn").style.display = "none";
+    generateQuestion();
 }
 
-// 1단계 선택 후: 세부(문장 전체)만 보여줌 — 단어 리스트는 여기서 절대 출력하지 않습니다.
-function selectStage1(key){
-  stage2El.innerHTML = '';
-  stage2Title.style.display = 'block';
-  const subs = clauses[key].세부;
-  Object.keys(subs).forEach(sk=>{
-    const btn = document.createElement('button');
-    btn.className = 'opt';
-    btn.type = 'button';
-    btn.textContent = subs[sk]; // **세부 문장만**
-    btn.onclick = ()=>checkAnswer(key, sk);
-    stage2El.appendChild(btn);
-  });
-  window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+function generateQuestion() {
+    currentRule = Math.floor(Math.random() * rules.length);
+    const words = rules[currentRule].examples;
+    currentWordIndex = Math.floor(Math.random() * words.length);
+    const questionText = `단어 '${words[currentWordIndex]}'는 어떤 규칙일까요?\n\n${rules[currentRule].rule}`;
+    document.getElementById("question").innerText = questionText;
+
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+
+    let optionTexts = [];
+    if(step === 1){
+        // 1단계: 항만 선택
+        optionTexts = rules.map(r => r.rule);
+    } else {
+        // 2단계: 세부 선택지
+        if(rules[currentRule].details.length > 0){
+            optionTexts = rules[currentRule].details;
+        } else {
+            optionTexts = ["이 항에는 세부 선택지가 없습니다."];
+        }
+    }
+
+    optionTexts.forEach((text, index) => {
+        const btn = document.createElement("button");
+        btn.innerText = text;
+        btn.className = "btn-primary";
+        btn.onclick = () => selectAnswer(index, optionTexts);
+        optionsDiv.appendChild(btn);
+    });
 }
 
-// 정답/오답 처리 — 정답이든 오답이든 '정답 항+세부(문장 전체)'을 정확히 보여줌.
-// 그리고 근거 예시는 문제 단어(currentWord) 한 가지만 보여줍니다.
-function checkAnswer(selectedClause, selectedSub){
-  const correct = currentCorrect;
-  resultEl.style.display = 'block';
-  if(selectedClause === correct.clause && selectedSub === correct.sub){
-    resultEl.className = 'ok';
-    resultEl.innerHTML = `<div>정답! 🎉</div>
-      <div style="margin-top:8px"><strong>${correct.clause} ${correct.sub}번:</strong> ${clauses[correct.clause].세부[correct.sub]}</div>
-      <div style="margin-top:8px"><strong>근거 예:</strong> "${currentWord}"</div>`;
-    score++;
-    scoreArea.textContent = `점수: ${score}`;
-  } else {
-    resultEl.className = 'bad';
-    resultEl.innerHTML = `<div>오답 😢</div>
-      <div style="margin-top:8px"><strong>정답 항목:</strong> ${clauses[correct.clause].문장}</div>
-      <div style="margin-top:6px"><strong>정답 세부 (${correct.sub}):</strong> ${clauses[correct.clause].세부[correct.sub]}</div>
-      <div style="margin-top:8px"><strong>근거 예:</strong> "${currentWord}"</div>`;
-  }
+function selectAnswer(selected, optionTexts) {
+    const result = document.getElementById("result");
+    let correctIndex;
 
-  // 버튼 비활성화
-  Array.from(document.querySelectorAll('#stage1 button.opt')).forEach(b=>b.disabled=true);
-  Array.from(document.querySelectorAll('#stage2 button.opt')).forEach(b=>b.disabled=true);
-
-  nextBtn.style.display = 'inline-block';
-  showAnswerBtn.style.display = 'inline-block';
-  explainNote.style.display = 'block';
-  explainNote.textContent = '원하면 "정답 보기"를 눌러 항목 전체(문장 + 예시)를 확인하세요.';
+    if(step === 1){
+        correctIndex = currentRule;
+        if(selected === correctIndex){
+            result.innerText = "정답! ✔\n다음 단계에서 세부 설명을 선택하세요.";
+            result.style.color = "#20bf6b";
+        } else {
+            result.innerText = `오답 ❌\n정답: ${rules[correctIndex].rule}\n다음 단계에서 세부 설명을 확인하세요.`;
+            result.style.color = "#eb4d4b";
+        }
+        step = 2;
+        document.getElementById("nextBtn").style.display = "block";
+    } else {
+        // 2단계: 세부 선택
+        if(rules[currentRule].details.length === 0){
+            result.innerText = "이 항에는 세부 선택지가 없습니다.";
+            result.style.color = "#2d2f38";
+        } else {
+            correctIndex = 0; // 기본 첫 세부 선택지를 정답으로 (원하는 경우 수정 가능)
+            if(selected === correctIndex){
+                result.innerText = "정답! ✔";
+                result.style.color = "#20bf6b";
+            } else {
+                result.innerText = `오답 ❌\n정답: ${rules[currentRule].details[correctIndex]}`;
+                result.style.color = "#eb4d4b";
+            }
+        }
+        document.getElementById("nextBtn").style.display = "block";
+    }
 }
 
-function showAnswer(){
-  const correct = currentCorrect;
-  const clauseSentence = clauses[correct.clause].문장;
-  const subSentence = clauses[correct.clause].세부[correct.sub];
-  // 정답의 예시 단어 전체 목록(해당 항의 clauses[...].단어)을 보여주되, 팝업으로만 표시합니다.
-  const examples = clauses[correct.clause].단어.join(', ');
-  alert(`정답(전체):\n${clauseSentence}\n\n세부:\n${subSentence}\n\n해당 항의 예시 단어(모두):\n${examples}\n\n근거 예: "${currentWord}"`);
+function nextQuestion() {
+    document.getElementById("result").innerText = "";
+    document.getElementById("nextBtn").style.display = "none";
+    generateQuestion();
 }
-
-// 이벤트 연결
-startBtn.onclick = startGame;
-quitBtn.onclick = quitGame;
-nextBtn.onclick = ()=>nextQuestion();
-showAnswerBtn.onclick = ()=>showAnswer();
-
 </script>
+
 </body>
 </html>
