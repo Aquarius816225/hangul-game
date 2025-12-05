@@ -23,6 +23,8 @@
   .btn.ghost{background:transparent;border:1px solid #e6eefc}
   .meta{margin-top:8px;font-size:13px;color:#666;text-align:center}
   @media (min-width:700px){ .stage{grid-template-columns:1fr 1fr} }
+  /* 보조 스타일 */
+  .subnote{font-size:13px;color:#555;margin-top:8px}
 </style>
 </head>
 <body>
@@ -51,18 +53,12 @@
       </div>
 
       <div class="meta" id="scoreArea">점수: 0</div>
+      <div class="subnote" id="explainNote" style="display:none"></div>
     </div>
   </div>
 
 <script>
-/*
-  - 조항 문장은 '정확한 원문'을 사용합니다.
-  - 단어는 사용자님이 주신 목록만 사용합니다.
-  - 흐름: 시작 -> 단어 표시 -> 항(문장전체) 선택 -> 세부(문장전체) 선택 -> 정답/오답 표기 -> '다음 문제'로 진행
-  - 정답일 때 '근거 예'로 해당 단어(문제 단어)를 함께 보여줍니다.
-*/
-
-// ====== 조항(원문)과 세부(원문) 정의 ======
+/* 데이터: 조항(문장)과 세부(문장). 단어 목록은 따로 보관만 하고, 2단계 버튼에는 절대 단어 리스트를 넣지 않습니다. */
 const clauses = {
   "5항": {
     "문장": "5항. 한 단어 안에서 뚜렷한 까닭 없이 나는 된소리는 다음 음절의 첫소리를 된소리로 적는다.",
@@ -71,25 +67,16 @@ const clauses = {
       "2": "2. ‘ㄴ, ㄹ, ㅁ, ㅇ’ 받침 뒤에서 나는 된소리",
       "붙임": "다만, ‘ㄱ, ㅂ’ 받침 뒤에서 나는 된소리는, 같은 음절이나 비슷한 음절이 겹쳐 나는 경우가 아니면 된소리로 적지 아니한다."
     },
-    "단어":[
-      "소쩍새","어깨","오빠","으뜸","아끼다","기쁘다","깨끗하다","어떠하다","해쓱하다","가끔","거꾸로","부썩","어찌","이따금",
-      "산뜻하다","잔뜩","살짝","훨씬","담뿍","움찔","몽땅","엉뚱하다",
-      "국수","깍두기","딱지","색시","싹둑","법석","갑자기","몹시"
-    ]
+    "단어":[ /* 단어는 보여주지 않음 */ "소쩍새","어깨","오빠","으뜸","아끼다","기쁘다","깨끗하다","어떠하다","해쓱하다","가끔","거꾸로","부썩","어찌","이따금","산뜻하다","잔뜩","살짝","훨씬","담뿍","움찔","몽땅","엉뚱하다","국수","깍두기","딱지","색시","싹둑","법석","갑자기","몹시" ]
   },
   "11항": {
-    "문장": "11항.한자음 ‘랴, 려, 례, 료, 류, 리’가 단어의 첫머리에 올 적에는, 두음 법칙에 따라 ‘야, 여, 예, 요, 유, 이’로 적는다.(ㄱ을 취하고, ㄴ을 버림.)",
+    "문장": "11항. 한자음 ‘랴, 려, 례, 료, 류, 리’가 단어의 첫머리에 올 적에는, 두음 법칙에 따라 ‘야, 여, 예, 요, 유, 이’로 적는다.(ㄱ을 취하고, ㄴ을 버림.)",
     "세부": {
-      "1": "1. 예: 양심(良心) → (량심), 용궁(龍宮) → (룡궁), 역사(歷史) → (력사), 유행(流行) → (류행), 예의(禮儀), 이발(理髮)",
+      "1": "1. 예: 양심(良心) → (량심), 용궁(龍宮) → (룡궁), 역사(歷史) → (력사), 유행(流行) → (류행), 예의(禮儀) → (례의), 이발(理髮) → (리발)",
       "붙임": "붙임 1. 단어의 첫머리 이외의 경우에는 본음대로 적는다. 예: 개량(改良), 선량(善良), 수력(水力), 협력(協力), 사례(謝禮), 혼례(婚禮), 와룡(臥龍), 쌍룡(雙龍), 하류(下流), 급류(急流), 도리(道理), 진리(眞理)",
       "3": "3. 다만, 모음이나 ‘ㄴ’ 받침 뒤에 이어지는 ‘렬, 률’은 ‘열, 율’로 적는다.(ㄱ을 취하고 ㄴ을 버림.) 예: 나열(羅列), 분열(分裂), 치열(齒列), 선열(先烈), 비열(卑劣), 진열(陳列), 규율(規律), 선율(旋律), 비율(比率), 전율(戰慄), 실패율(失敗率), 백분율(百分率)"
     },
-    // 11항 예시 단어들을 포함 (세부별 매핑은 아래에서 처리)
-    "단어":[
-      "양심","용궁","역사","유행","예의","이발",
-      "개량","선량","수력","협력","사례","혼례","와룡","쌍룡","하류","급류","도리","진리",
-      "나열","분열","치열","선열","비열","진열","규율","선율","비율","전율","실패율","백분율"
-    ]
+    "단어":[ "양심","용궁","역사","유행","예의","이발","개량","선량","수력","협력","사례","혼례","와룡","쌍룡","하류","급류","도리","진리","나열","분열","치열","선열","비열","진열","규율","선율","비율","전율","실패율","백분율" ]
   },
   "25항": {
     "문장": "25항. ‘-하다’가 붙는 어근에 ‘-히’나 ‘-이’가 붙어서 부사가 되거나, 부사에 ‘-이’가 붙어서 뜻을 더하는 경우에는 그 어근이나 부사의 원형을 밝히어 적는다.",
@@ -98,86 +85,51 @@ const clauses = {
       "붙임": "붙임. ‘-하다’가 붙지 않는 경우에는 소리대로 적는다.",
       "2": "2. 부사에 ‘-이’가 붙어서 역시 부사가 되는 경우"
     },
-    "단어":[
-      "급히","꾸준히","도저히","딱히","어렴풋이","깨끗이",
-      "갑자기","반드시","슬며시",
-      "곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이"
-    ]
+    "단어":[ "급히","꾸준히","도저히","딱히","어렴풋이","깨끗이","갑자기","반드시","슬며시","곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이" ]
   },
   "30항": {
-    "문장": "30항.사이시옷은 다음과 같은 경우에 받치어 적는다.",
+    "문장": "30항. 사이시옷은 다음과 같은 경우에 받치어 적는다.",
     "세부": {
       "1": "1. 순우리말로 된 합성어로서 앞말이 모음으로 끝난 경우",
       "2": "2. 순우리말과 한자어로 된 합성어로서 앞말이 모음으로 끝난 경우",
       "3": "3. 두 음절로 된 다음 한자어"
     },
-    "단어":[
-      "고랫재","귓밥","나뭇가지","냇가","뱃길","깻잎","나뭇잎","냇물","빗물",
-      "귓병","뱃병","봇둑","샛강","아랫방","자릿세","탯줄",
-      "곳간","셋방","숫자","찻간","횟수"
-    ]
+    "단어":[ "고랫재","귓밥","나뭇가지","냇가","뱃길","깻잎","나뭇잎","냇물","빗물","귓병","뱃병","봇둑","샛강","아랫방","자릿세","탯줄","곳간","셋방","숫자","찻간","횟수" ]
   }
 };
 
-// ====== 단어 -> (항, 세부) 정확 매핑 ======
-// 사용자가 준 단어들만 사용하고, 각 단어의 정확한 세부를 명시
+// === 단어 -> 정답 매핑 (정확한 세부 매핑) ===
 const wordMap = {};
-
-// 5항
 clauses["5항"].단어.forEach(w=>{
   if(["소쩍새","어깨","오빠","으뜸","아끼다","기쁘다","깨끗하다","어떠하다","해쓱하다","가끔","거꾸로","부썩","어찌","이따금"].includes(w)) {
     wordMap[w] = {clause:"5항", sub:"1"};
   } else if(["산뜻하다","잔뜩","살짝","훨씬","담뿍","움찔","몽땅","엉뚱하다"].includes(w)) {
     wordMap[w] = {clause:"5항", sub:"2"};
-  } else {
-    wordMap[w] = {clause:"5항", sub:"붙임"};
-  }
+  } else { wordMap[w] = {clause:"5항", sub:"붙임"} }
 });
-
-// 11항
 clauses["11항"].단어.forEach(w=>{
-  if(["양심","용궁","역사","유행","예의","이발"].includes(w)) {
-    wordMap[w] = {clause:"11항", sub:"1"};
-  } else if(["개량","선량","수력","협력","사례","혼례","와룡","쌍룡","하류","급류","도리","진리"].includes(w)) {
-    wordMap[w] = {clause:"11항", sub:"붙임"};
-  } else {
-    // 나열, 분열 등 -> 세부 3
-    wordMap[w] = {clause:"11항", sub:"3"};
-  }
+  if(["양심","용궁","역사","유행","예의","이발"].includes(w)) wordMap[w] = {clause:"11항", sub:"1"};
+  else if(["개량","선량","수력","협력","사례","혼례","와룡","쌍룡","하류","급류","도리","진리"].includes(w)) wordMap[w] = {clause:"11항", sub:"붙임"};
+  else wordMap[w] = {clause:"11항", sub:"3"};
 });
-
-// 25항
 clauses["25항"].단어.forEach(w=>{
-  if(["급히","꾸준히","도저히","딱히","어렴풋이","깨끗이"].includes(w)) {
-    wordMap[w] = {clause:"25항", sub:"1"};
-  } else if(["곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이"].includes(w)) {
-    wordMap[w] = {clause:"25항", sub:"2"};
-  } else {
-    wordMap[w] = {clause:"25항", sub:"붙임"};
-  }
+  if(["급히","꾸준히","도저히","딱히","어렴풋이","깨끗이"].includes(w)) wordMap[w] = {clause:"25항", sub:"1"};
+  else if(["곰곰이","더욱이","생긋이","오뚝이","일찍이","해죽이"].includes(w)) wordMap[w] = {clause:"25항", sub:"2"};
+  else wordMap[w] = {clause:"25항", sub:"붙임"};
 });
-
-// 30항
 clauses["30항"].단어.forEach(w=>{
-  if(["고랫재","귓밥","나뭇가지","냇가","뱃길","깻잎","나뭇잎","냇물","빗물"].includes(w)) {
-    wordMap[w] = {clause:"30항", sub:"1"};
-  } else if(["귓병","뱃병","봇둑","샛강","아랫방","자릿세","탯줄"].includes(w)) {
-    wordMap[w] = {clause:"30항", sub:"2"};
-  } else {
-    wordMap[w] = {clause:"30항", sub:"3"};
-  }
+  if(["고랫재","귓밥","나뭇가지","냇가","뱃길","깻잎","나뭇잎","냇물","빗물"].includes(w)) wordMap[w] = {clause:"30항", sub:"1"};
+  else if(["귓병","뱃병","봇둑","샛강","아랫방","자릿세","탯줄"].includes(w)) wordMap[w] = {clause:"30항", sub:"2"};
+  else wordMap[w] = {clause:"30항", sub:"3"};
 });
-
-// 전체 단어 목록 (사용자님이 주신 단어들만)
 const allWords = Object.keys(wordMap);
 
-// ====== 게임 상태 ======
-let remaining = [...allWords]; // 무한모드: 문제 풀 때마다 pop하지 않고 다시 넣을 수 있음. (요청하신건 'A: 끝낼때까지' -> 랜덤 계속)
+// === 게임 상태 ===
 let currentWord = null;
 let currentCorrect = null;
 let score = 0;
 
-// ====== UI 요소 ======
+// === UI ===
 const startBtn = document.getElementById('startBtn');
 const quitBtn = document.getElementById('quitBtn');
 const wordEl = document.getElementById('word');
@@ -188,6 +140,7 @@ const resultEl = document.getElementById('result');
 const nextBtn = document.getElementById('nextBtn');
 const showAnswerBtn = document.getElementById('showAnswerBtn');
 const scoreArea = document.getElementById('scoreArea');
+const explainNote = document.getElementById('explainNote');
 const gameArea = document.getElementById('gameArea');
 
 function startGame(){
@@ -197,14 +150,8 @@ function startGame(){
   gameArea.style.display = 'block';
   nextQuestion();
 }
+function quitGame(){ if(confirm("게임을 종료할까요?")) location.reload(); }
 
-function quitGame(){
-  if(confirm("게임을 종료할까요?")) {
-    location.reload();
-  }
-}
-
-// 무한모드: 매번 랜덤으로 골라 문제 출제
 function nextQuestion(){
   // 초기화
   stage1El.innerHTML = '';
@@ -213,88 +160,87 @@ function nextQuestion(){
   resultEl.style.display = 'none';
   nextBtn.style.display = 'none';
   showAnswerBtn.style.display = 'none';
+  explainNote.style.display = 'none';
+  explainNote.textContent = '';
 
-  // 무작위 단어 선택 (풀린 문제도 다시 나올 수 있음 — A 모드)
-  const idx = Math.floor(Math.random()*remaining.length);
-  currentWord = remaining[idx];
-  currentCorrect = wordMap[currentWord]; // {clause, sub}
+  // 랜덤 단어 선택
+  const idx = Math.floor(Math.random()*allWords.length);
+  currentWord = allWords[idx];
+  currentCorrect = wordMap[currentWord];
   wordEl.textContent = currentWord;
 
-  // 1단계: 항(문장 전체) 버튼 생성 (항 문장 그대로)
-  const keys = Object.keys(clauses);
-  keys.forEach(key=>{
+  // 1단계: 항(문장 전체) 버튼 생성 — 여기에는 절대 단어 목록을 포함하지 않습니다.
+  Object.keys(clauses).forEach(key=>{
     const btn = document.createElement('button');
     btn.className = 'opt';
     btn.type = 'button';
-    btn.textContent = `${clauses[key].문장}`;
+    btn.textContent = clauses[key].문장; // 오직 문장만
     btn.onclick = ()=>selectStage1(key);
     stage1El.appendChild(btn);
   });
 }
 
-// 1단계 선택 후 세부(문장 전체) 노출
+// 1단계 선택 후: 세부(문장 전체)만 보여줌 — 단어 리스트는 여기서 절대 출력하지 않습니다.
 function selectStage1(key){
   stage2El.innerHTML = '';
   stage2Title.style.display = 'block';
   const subs = clauses[key].세부;
-  const subKeys = Object.keys(subs);
-  subKeys.forEach(sk=>{
+  Object.keys(subs).forEach(sk=>{
     const btn = document.createElement('button');
     btn.className = 'opt';
     btn.type = 'button';
-    btn.textContent = `${subs[sk]}`; // 세부 문장 전체
+    btn.textContent = subs[sk]; // **세부 문장만**
     btn.onclick = ()=>checkAnswer(key, sk);
     stage2El.appendChild(btn);
   });
-  // 스크롤 내려 세부가 보이게 (모바일에서 편하게)
   window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
 }
 
-// 정답/오답 확인
+// 정답/오답 처리 — 정답이든 오답이든 '정답 항+세부(문장 전체)'을 정확히 보여줌.
+// 그리고 근거 예시는 문제 단어(currentWord) 한 가지만 보여줍니다.
 function checkAnswer(selectedClause, selectedSub){
   const correct = currentCorrect;
   resultEl.style.display = 'block';
-  // 정답 판정: 항과 세부가 모두 일치해야 정답
   if(selectedClause === correct.clause && selectedSub === correct.sub){
     resultEl.className = 'ok';
-    resultEl.textContent = '정답! 🎉  — 조항: ' + clauses[selectedClause].문장 + '\n근거 예: "' + currentWord + '"';
+    resultEl.innerHTML = `<div>정답! 🎉</div>
+      <div style="margin-top:8px"><strong>${correct.clause} ${correct.sub}번:</strong> ${clauses[correct.clause].세부[correct.sub]}</div>
+      <div style="margin-top:8px"><strong>근거 예:</strong> "${currentWord}"</div>`;
     score++;
     scoreArea.textContent = `점수: ${score}`;
   } else {
     resultEl.className = 'bad';
-    // 올바른 문장 출력 (항 전체 문장 + 세부 전체 문장)
-    const correctClauseSentence = clauses[correct.clause].문장;
-    const correctSubSentence = clauses[correct.clause].세부[correct.sub];
     resultEl.innerHTML = `<div>오답 😢</div>
-      <div style="margin-top:8px"><strong>정답 항목:</strong> ${correctClauseSentence}</div>
-      <div style="margin-top:6px"><strong>정답 세부:</strong> ${correctSubSentence}</div>
+      <div style="margin-top:8px"><strong>정답 항목:</strong> ${clauses[correct.clause].문장}</div>
+      <div style="margin-top:6px"><strong>정답 세부 (${correct.sub}):</strong> ${clauses[correct.clause].세부[correct.sub]}</div>
       <div style="margin-top:8px"><strong>근거 예:</strong> "${currentWord}"</div>`;
   }
 
-  // 버튼 비활성화(중복 선택 방지)
+  // 버튼 비활성화
   Array.from(document.querySelectorAll('#stage1 button.opt')).forEach(b=>b.disabled=true);
   Array.from(document.querySelectorAll('#stage2 button.opt')).forEach(b=>b.disabled=true);
 
-  // 다음 문제 및 정답보기 버튼 노출
   nextBtn.style.display = 'inline-block';
   showAnswerBtn.style.display = 'inline-block';
+  explainNote.style.display = 'block';
+  explainNote.textContent = '원하면 "정답 보기"를 눌러 항목 전체(문장 + 예시)를 확인하세요.';
 }
 
-// 정답 전체 보기 (항+세부 문장)
 function showAnswer(){
   const correct = currentCorrect;
   const clauseSentence = clauses[correct.clause].문장;
   const subSentence = clauses[correct.clause].세부[correct.sub];
-  alert(`정답(전체):\n${clauseSentence}\n\n세부:\n${subSentence}\n\n근거 예: "${currentWord}"`);
+  // 정답의 예시 단어 전체 목록(해당 항의 clauses[...].단어)을 보여주되, 팝업으로만 표시합니다.
+  const examples = clauses[correct.clause].단어.join(', ');
+  alert(`정답(전체):\n${clauseSentence}\n\n세부:\n${subSentence}\n\n해당 항의 예시 단어(모두):\n${examples}\n\n근거 예: "${currentWord}"`);
 }
 
 // 이벤트 연결
 startBtn.onclick = startGame;
 quitBtn.onclick = quitGame;
 nextBtn.onclick = ()=>nextQuestion();
-showAnswerBtn.onclick = showAnswer;
+showAnswerBtn.onclick = ()=>showAnswer();
 
 </script>
 </body>
 </html>
-
